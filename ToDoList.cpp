@@ -28,7 +28,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // TODO: Kodu buraya yerleştirin.
 
     // Genel dizeleri başlat
-    wcscpy_s(szTitle, MAX_LOADSTRING, L"CloudList - An app for To-Do List");
+    wcscpy_s(szTitle, MAX_LOADSTRING, L"CloudList - An App for To-Do List");
     //LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     //LoadStringW(hInstance, IDC_TODOLIST, szWindowClass, MAX_LOADSTRING);
     wcscpy_s(szWindowClass, MAX_LOADSTRING, L"MainScreen");
