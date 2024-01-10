@@ -4,6 +4,8 @@
 #include "framework.h"
 #include "ToDoList.h"
 
+
+
 #define MAX_LOADSTRING 100
 
 // Genel Değişkenler:
@@ -123,8 +125,22 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - bir çıkış iletisi gönder ve dön
 //
 //
+ToDoList::ToDoList()
+{
+	//use if necessary
+}
 
-void SaveText(HWND hEdit, HWND hStaticText)
+void ToDoList::AddItem(const std::wstring& item)
+{
+	itemList.push_back(item);
+}
+
+const std::list<std::wstring>& ToDoList::GetList() const
+{
+	return itemList;
+}
+
+void SaveText(HWND hEdit, ToDoList& ToDoList, HWND hStaticText, HWND hListView)
 {
 	int textLength = GetWindowTextLengthW(hEdit);
 	if (textLength > 0)
@@ -133,12 +149,21 @@ void SaveText(HWND hEdit, HWND hStaticText)
 		std::wstring textBuffer(textLength + 1, L'\0');
 		GetWindowTextW(hEdit, &textBuffer[0], textLength + 1);
 
+		//add to the list
+		ToDoList.AddItem(textBuffer);
+
+		// ListView'a öğe ekle
+		LVITEM lvItem = { 0 };
+		lvItem.mask = LVIF_TEXT;
+		LVCOLUMN pszText = { 1 };
+		lvItem.iItem = 0; // Öğeyi ilk sıraya ekle
+		lvItem.iSubItem = 0;
+
+		SendMessageW(hListView, LVM_INSERTITEM, 0, reinterpret_cast<LPARAM>(&lvItem));
+		UpdateWindow(hListView);
+		InvalidateRect(hListView, NULL, TRUE);
 		SetWindowTextW(hStaticText, textBuffer.c_str());
-		// Burada textBuffer içindeki metni başka bir yere kaydedebilirsiniz.
-		// Örneğin, bir dosyaya yazabilirsiniz.
-		// Şu an sadece bir mesaj kutusuna yazdırıyoruz:
-		MessageBox(NULL, textBuffer.c_str(), L"Kaydedilen Metin", MB_OK);
-		SetWindowTextW(hStaticText, textBuffer.c_str());
+		UpdateWindow(hListView);
 	}
 	else
 	{
@@ -148,9 +173,12 @@ void SaveText(HWND hEdit, HWND hStaticText)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	static ToDoList myToDoList;
 	static HWND hEdit;
 	static HWND hStaticText;
 	static HWND hButton;
+	static HWND hListView;
+	
 	switch (message)
 	{
 	case WM_COMMAND:
@@ -161,11 +189,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case IDC_BUTTON_SAVE:
 		{
-			MessageBox(NULL, L"Butona Tıklandı!", L"Bilgi", MB_OK);
 			// SaveText fonksiyonunu çağır
-			SaveText(hEdit, hStaticText);
+			SaveText(hEdit, myToDoList, hStaticText, hListView);
+			break;
 		}
-		break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -192,7 +219,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_CREATE:
+
 	{
+		const wchar_t* columnText = L"Patates";
 		hEdit = CreateWindowEx(WS_EX_CLIENTEDGE, L"EDIT",
 			L"",
 			WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
@@ -224,7 +253,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			NULL);
 
 		hStaticText = CreateWindow(L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 50, 200, 20, hWnd, (HMENU)IDC_STATIC_TEXT, GetModuleHandle(NULL), NULL);
+
+		// ListView Oluştur
+		HWND hListView = CreateWindowEx(WS_EX_CLIENTEDGE,
+			WC_LISTVIEW,
+			L"",
+			WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT,
+			10,
+			80,
+			500,
+			200,
+			hWnd,
+			(HMENU)IDC_LISTVIEW,
+			GetModuleHandle(NULL),
+			NULL);
+
+		if (hListView == NULL)
+		{
+			MessageBox(hWnd, L"ListView oluşturulamadı!", L"Hata", MB_OK | MB_ICONHAND);
+		}
+
+		// ListView Sütunları Ekle
+		LVCOLUMN lvColumn = { 0 };
+		lvColumn.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+		lvColumn.pszText = const_cast<LPWSTR>(columnText);
+		lvColumn.fmt = LVCFMT_LEFT;
+		lvColumn.cx = 100;  // Sütun genişliği
+
+		ListView_InsertColumn(hListView, 0, &lvColumn);
+
+		// Diğer sütunları da ekleyebilirsiniz.
 	}
+	
 	break;
 
 	}
